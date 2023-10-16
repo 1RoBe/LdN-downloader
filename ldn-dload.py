@@ -29,11 +29,7 @@ def main():
     #     for chunk in ldn_request.iter_content(chunk_size):
     #         f.write(chunk)
 
-
-
     downloadSourceFile(args.start, args.stop, verbose)
-
-
     return 0
 
 # def load(url):
