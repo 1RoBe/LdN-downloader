@@ -2,9 +2,10 @@ import argparse
 import requests
 import urllib.request
 import multiprocessing
-import ThreadPool
+import concurrent.futures
 
-URL = "https://dts.podtrac.com/redirect.mp3/files.lagedernation.org/lagedernation/LdN001.mp3?ptm_source=feed&ptm_context=mp3&ptm_file=LdN001.mp3"
+
+URL = "https://dts.podtrac.com/redirect.mp3/files.lagedernation.org/lagedernation/LdN020.mp3?ptm_source=feed&ptm_context=mp3&ptm_file=LdN020.mp3"
 
 def main():
     parser = argparse.ArgumentParser(description="download specific episodes from Lage der Nation")
@@ -50,7 +51,8 @@ def downloadSource(url):
     ldn_request = urllib.request.Request(url)
     return urllib.request.urlopen(ldn_request).read()
 
-def writeFile(data, file_name):
+def writeFile(url, file_name):
+    data = downloadSource(url)
     with open(file_name, "wb") as f:
         f.write(data)
 
@@ -58,8 +60,9 @@ def downloadSourceFile(episode_low_nr, episode_high_nr, verbose=False):
     source_first = "https://dts.podtrac.com/redirect.mp3/files.lagedernation.org/lagedernation/LdN"
     source_second = ".mp3?ptm_source=feed&ptm_context=mp3&ptm_file=LdN"
     source_last = ".mp3"
-
-    background_tasks = set()
+    future_to_url = {}
+    source_list = []
+    file_name_list = []
 
     for episode in range(episode_low_nr, episode_high_nr+1):
         if (episode < 10):
@@ -72,16 +75,19 @@ def downloadSourceFile(episode_low_nr, episode_high_nr, verbose=False):
             episode_string = str(episode)
 
         source_full = source_first+str(episode_string)+source_second+str(episode_string)+source_last
+        source_list.append(source_full)
+
         file_name = "LdN"+episode_string+".mp3"
+        file_name_list.append(file_name)
 
         if verbose:
             print(f"downloading {file_name}...")
-
-        writeFile(downloadSource(source_full), file_name)
-        # data = downloadSource(source_full)a
-        # writeFile(data, file_name)
-        # LdN352.mp3
-# test
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_list = {executor.submit(writeFile, url, name) for url, name in zip(source_list, file_name_list)}
+        for future in concurrent.futures.as_completed(future_list):
+            future.result()
+    
 
 # https://dts.podtrac.com/redirect.mp3/files.lagedernation.org/lagedernation/LdN352.mp3?ptm_source=feed&ptm_context=mp3&ptm_file=LdN352.mp3
 
